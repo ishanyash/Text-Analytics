@@ -1,0 +1,198 @@
+---
+title: "Text_analytics_Lectures"
+author: "Ishan Yash"
+date: "19/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(textstem)
+library(patchwork)
+library(ggplot2)
+library(wordcloud)
+#install.packages("tidytext")
+library(tidytext)
+library(qdap)
+library(tm)
+#install.packages("ngramr")
+library(ngramr)
+library(stringr)
+library(dplyr)
+text.df <- read.csv("oct_delta.csv")
+tweets<-
+  data.frame(ID=seq(1:nrow(text.df)),text=text.df$text)
+glimpse(tweets)
+
+```
+
+-   **bracketX()**: Remove all text within brackets (e.g. "It's (so) cool" becomes "It's cool")
+
+-   **replace_number()**: Replace numbers with their word equivalents (e.g. "2" becomes "two")
+
+-   **replace_abbreviation()**: Replace abbreviations with their full text equivalents (e.g. "Sr" becomes "Senior")
+
+-   **replace_contraction()**: Convert contractions back to their base words (e.g. "shouldn't" becomes "should not")
+
+-   **replace_symbol()**: Replace common symbols with their word equivalents (e.g. "\$" becomes "dollar")
+
+```{r}
+text <- "<b>She</b> woke (up) at       6 A.M. It\'s so early! She was only 10% awake and began drinking coffee in front of her computer. She is a sr. staff member. She was feeling @@@ plsd though early in the morn. Partlycus of $500 in her       purse. Isn't it a fab day, she thought"
+cat(text)
+```
+```{r}
+str_squish(text)
+```
+
+```{r}
+bracketX(text)
+```
+
+```{r}
+text
+replace_number(text)
+```
+
+
+```{r}
+text
+replace_abbreviation(text)
+```
+
+
+```{r}
+text
+replace_contraction(text)
+```
+
+
+```{r}
+text
+replace_symbol(text)
+```
+
+```{r}
+text_new <- text
+text_new <- bracketX(text_new)
+text_new <- replace_symbol(text_new)
+text_new <- replace_contraction(text_new)
+text_new <- replace_number(text_new)
+```
+
+```{r}
+text
+text_new
+```
+
+```{r}
+abbreviations
+```
+```{r}
+abv <- c("plsd", "morn","sr.","cus", "fab")
+repl <- c("pleased", "morning","senior","because", "fabulous")
+text
+replace_abbreviation(text_new, abv, repl)
+```
+
+```{r}
+delta_dataset <- read_csv("oct_delta.csv")
+head(delta_dataset)
+```
+
+```{r}
+plt1 <- plot(freq_terms(delta_dataset$text))
+```
+```{r}
+abv = c("pls","hi","pl")
+repl =c("please","hello","please")
+delta_dataset$text1 = replace_abbreviation(delta_dataset$text, abv, repl)
+plt2 <- plot(freq_terms(delta_dataset$text1))
+```
+
+```{r}
+print(plt1+plt2) #Please has now more counts in overall dataset
+```
+
+```{r}
+x = unnest_tokens(delta_dataset,word,text1) 
+View(x)
+```
+
+```{r}
+View(stop_words)
+```
+
+```{r}
+newwords = data.frame(word=c("i","1","2","delta"),lexicon=rep("custom",4))
+head(newwords)
+allstopwords = rbind(newwords,stop_words)
+head(allstopwords)
+```
+
+```{r}
+x1=x %>% anti_join(allstopwords) #unique words extracted, and formed into a df -> Antijoin; Removing all the stop words
+head(x1)
+nrow(x)
+nrow(x1)
+```
+
+```{r}
+  plt3 <- plot(freq_terms(x$word), plot=FALSE)+labs(title = "Before")
+  plt4 <- plot(freq_terms(x1$word), plot=FALSE)+labs(title = "After")
+print(plt3+plt4)
+```
+
+```{r}
+#install.packages("textstem")
+test = x1
+test$lemmword = lemmatize_words(test$word)
+test$diff = ifelse(test$word==test$lemmword,"",1)
+#knitr::kable(test)
+View(test)
+```
+
+```{r}
+x1$word = lemmatize_words(x1$word)
+```
+
+```{r}
+stemDocument(c("are", "am", "being","been","be"))
+stemDocument(c("cars","car's","cars'"))
+stemDocument(c("happy","happiness","happily"))
+stemDocument("please")
+stemDocument(c("run", "ran", "running"))
+stemDocument("Transforming words to do text mining applications is often needed.")
+plt5 <- plot(freq_terms(x1$word))
+```
+
+```{r}
+ x1$word = stemDocument(x1$word,language = "en")  
+ head(x1)
+ plt6 <- plot(freq_terms(x1$word))
+ print(plt5+plt6)
+```
+***Stemming and Lemmatization both generate the foundation sort of the inflected words and therefore the only difference is that stem may not be an actual word whereas, lemma is an actual language word***
+
+```{r}
+wdf = x1 %>% count(word, sort = T)
+wordcloud(wdf$word,wdf$n,min.freq = 10)
+```
+```{r}
+googlengram <- ngram(c("can be frustrating","i know that"), year_start = 2018)
+head(googlengram)
+```
+
+```{r}
+x1$word[1:5]
+```
+
+```{r warning=FALSE}
+googlengram <- ngrami(x1$word[1:5],year_start = 2018,count=T)
+head(googlengram)
+```
+
+```{r warning=FALSE}
+df <-  ngram("bank_*",count=T,year_start = 2010)
+head(df)
+```
+
